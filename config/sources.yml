@@ -7,6 +7,24 @@
     "browser_result_timeout_ms": 15000,
     "browser_settle_time_ms": 1500
   },
+  "quality": {
+    "enabled": true,
+    "mode": "strict",
+    "allowed_publication_types": [
+      "journal_article",
+      "review",
+      "conference_paper"
+    ],
+    "allow_unknown_types": false,
+    "minimum_score": 40,
+    "capes_production_cache": "data/catalogs/capes/productions.jsonl",
+    "catalogs": {
+      "scielo_journals": "docs/journals_areas_2026-09-29_19-15-23.csv",
+      "doaj_journals": "docs/doaj_journalcsv_20260830_2320_utf8.csv",
+      "capes_qualis": "config/capes-qualis.csv",
+      "core_conferences": "config/core-conferences.csv"
+    }
+  },
   "sources": {
     "scopus": {
       "enabled": true,

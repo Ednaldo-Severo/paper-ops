@@ -12,6 +12,8 @@ query string
   -> source-specific normalization
   -> PaperRecord[]
   -> deduplication
+  -> publication-type classification
+  -> academic quality filtering + venue catalog ranking
   -> markdown report + JSON export
   -> search history index
   -> optional PDF download + text extraction
@@ -28,6 +30,8 @@ query string
 - `src/lib/config.mjs` -> config loading and defaults
 - `config/keys.txt` -> local, gitignored API keys for Scopus, IEEE, and Web of Science
 - `src/lib/papers.mjs` -> `PaperRecord` normalization and deduplication
+- `src/lib/academic-quality.mjs` -> publication-type inference, CSV catalog loading, quality scoring, filtering, and ranking
+- `src/lib/catalog-sync.mjs` -> bounded CAPES/Sucupira facet discovery, paginated synchronization, atomic snapshots, and provenance manifests
 - `src/lib/browser-runtime.mjs` -> shared Playwright browser lifecycle for live searches
 - `src/lib/adapters/*` -> source-specific live extraction and fixture normalization
 - `src/lib/search-runner.mjs` -> orchestration and artifact writing
@@ -48,6 +52,8 @@ query string
 - `data/search-history.md` -> lightweight run index
 - `data/search-queue.md` -> queued searches
 - `data/paper-ops.sqlite` -> local RAG database for articles, documents, chunks, FTS, answers, evidence, and references
+- `data/catalogs/capes/productions.jsonl` -> synchronized CAPES/Sucupira production registry cache
+- `data/catalogs/capes/manifest.json` -> synchronization query, coverage, truncation, warnings, and provenance
 - `output/pdfs/*.pdf` -> cached PDFs for saved search results
 - `output/pdf-text/*.txt` -> extracted article text
 - `output/ocr-pdfs/*.pdf` -> OCR-processed PDF copies
@@ -70,6 +76,16 @@ query string
 3. Normalized title plus year
 
 When duplicates are merged, the first retained record is enriched with any missing metadata discovered later, including `pdf_available` and `pdf_url`.
+
+## Academic Quality Policy
+
+1. Deduplicated records are classified as journal articles, reviews, conference papers, preprints, books, theses, or unknown types.
+2. Explicit source metadata is preferred; venue/title heuristics are the fallback.
+3. Configured catalogs are matched by ISSN/eISSN first, then normalized title or conference acronym.
+4. CAPES/Qualis, SciELO, and international venue rankings remain separate evidence signals.
+5. `strict` mode filters by type and minimum score; `prioritize` mode only sorts by score.
+6. Every saved record exposes the score, tier, reasons, and catalog matches used in ranking.
+7. CAPES production-cache matches use exact normalized title plus year and remain separate from CAPES/Qualis venue validation.
 
 ## Live Search Model
 

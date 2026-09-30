@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 
+import { applyAcademicQualityPolicy } from './academic-quality.mjs';
 import { runSourceSearch } from './adapters/index.mjs';
 import { createPlaywrightBrowserRuntime } from './browser-runtime.mjs';
 import { deduplicatePaperRecords } from './papers.mjs';
@@ -61,7 +62,12 @@ function renderMarkdownReport({ query, now, summary, records, profile }) {
     .join('\n');
 
   const recordRows = records
-    .map((record, index) => `| ${index + 1} | ${record.source} | ${record.title} | ${record.year ?? '-'} | ${record.venue || '-'} | ${record.doi || '-'} | ${formatPdfAvailability(record.pdf_available)} | ${record.pdf_url || '-'} | ${record.url} |`)
+    .map((record, index) => `| ${index + 1} | ${record.academic_quality?.score ?? '-'} | ${record.publication_type || '-'} | ${record.source} | ${record.title} | ${record.year ?? '-'} | ${record.venue || '-'} | ${record.academic_quality?.capes_validated ? 'yes' : 'no'} | ${record.academic_quality?.scielo_indexed ? 'yes' : 'no'} | ${record.doi || '-'} | ${formatPdfAvailability(record.pdf_available)} | ${record.url} |`)
+    .join('\n');
+
+  const quality = summary.quality ?? { enabled: false, mode: 'off' };
+  const catalogRows = Object.entries(quality.catalogStatus ?? {})
+    .map(([catalog, details]) => `| ${catalog} | ${details.loaded ? 'loaded' : 'unavailable'} | ${details.records ?? 0} | ${details.path || '-'} | ${details.reason || '-'} |`)
     .join('\n');
 
   let profileSection = '';
@@ -72,7 +78,7 @@ function renderMarkdownReport({ query, now, summary, records, profile }) {
     }
   }
 
-  return `# Academic Paper Search Report\n\n**Query:** ${query}\n**Generated At:** ${now.toISOString()}\n**Raw Records:** ${summary.totalRawRecords}\n**Unique Records:** ${records.length}\n**Duplicates Removed:** ${summary.duplicatesRemoved}\n${profileSection}\n## Source Coverage\n\n| Source | Status | Records | Reason |\n|---|---|---:|---|\n${coverageRows}\n\n## Results\n\n| # | Source | Title | Year | Venue | DOI | PDF Available | PDF URL | URL |\n|---|---|---|---:|---|---|---|---|---|\n${recordRows || '| - | - | No results | - | - | - | - | - | - |'}\n`;
+  return `# Academic Paper Search Report\n\n**Query:** ${query}\n**Generated At:** ${now.toISOString()}\n**Raw Records:** ${summary.totalRawRecords}\n**Deduplicated Records:** ${summary.deduplicatedRecords ?? records.length}\n**Ranked/Filtered Records:** ${records.length}\n**Duplicates Removed:** ${summary.duplicatesRemoved}\n**Quality Policy:** ${quality.enabled ? quality.mode : 'off'}\n**Filtered by Type:** ${quality.filteredByType ?? 0}\n**Filtered by Score:** ${quality.filteredByScore ?? 0}\n**CAPES/Qualis Matches:** ${quality.capesMatches ?? 0}\n**SciELO Matches:** ${quality.scieloMatches ?? 0}\n**DOAJ Matches:** ${quality.doajMatches ?? 0}\n${profileSection}\n## Source Coverage\n\n| Source | Status | Records | Reason |\n|---|---|---:|---|\n${coverageRows}\n\n## Academic Catalogs\n\n| Catalog | Status | Records | Path | Reason |\n|---|---|---:|---|---|\n${catalogRows || '| - | disabled | 0 | - | - |'}\n\n## Results\n\n| # | Quality | Type | Source | Title | Year | Venue | CAPES | SciELO | DOI | PDF Available | URL |\n|---|---:|---|---|---|---:|---|---|---|---|---|---|\n${recordRows || '| - | - | - | - | No results | - | - | - | - | - | - | - |'}\n`;
 }
 
 function ensureHistoryIndex(projectRoot) {
@@ -155,19 +161,22 @@ export async function runConfiguredSearch({
 
   const rawRecords = sourceResults.flatMap((result) => result.records);
   const deduped = deduplicatePaperRecords(rawRecords);
+  const qualityResult = applyAcademicQualityPolicy(deduped.uniqueRecords, config.quality);
 
   return {
     query,
     now,
     sourceResults,
     rawRecords,
-    records: deduped.uniqueRecords,
+    records: qualityResult.records,
     summary: {
       totalRawRecords: rawRecords.length,
       duplicatesRemoved: deduped.stats.duplicatesRemoved,
-      uniqueRecords: deduped.uniqueRecords.length,
+      deduplicatedRecords: deduped.uniqueRecords.length,
+      uniqueRecords: qualityResult.records.length,
       removedByRule: deduped.stats.removedByRule,
       sourceCoverage: buildSourceCoverage(sourceResults),
+      quality: qualityResult.summary,
     },
   };
 }

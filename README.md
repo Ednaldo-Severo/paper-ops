@@ -143,6 +143,7 @@ paper-ops summarize "<query>" -> Use PDF text or abstract fallback to write stru
 paper-ops digest "<query>"   -> Generate a consolidated digest for one saved query
 paper-ops ocr "<query>"      -> OCR cached/downloadable PDFs for one saved query
 paper-ops db init            -> Initialize the local SQLite RAG database
+paper-ops catalog sync capes -> Synchronize CAPES/Sucupira production metadata
 paper-ops index "<query>"    -> Build a local RAG index from saved PDFs/text/abstracts
 paper-ops embed "<query>"    -> Generate semantic embeddings for indexed chunks
 paper-ops ask "<query>" --question "<question>" -> Answer from the local RAG index with evidence
@@ -219,6 +220,61 @@ Each source supports:
 - `fixture` for local fixture-backed testing
 - `experimental` for best-effort adapters like Google Scholar
 
+### Academic quality filters and venue ranking
+
+Searches can classify, filter, and rank records by publication type and academic venue evidence. The repository configuration enables strict filtering by default for:
+
+- journal articles
+- review articles
+- conference papers
+
+The quality policy is configured under `quality` in `config/sources.yml`:
+
+```json
+{
+  "quality": {
+    "enabled": true,
+    "mode": "strict",
+    "allowed_publication_types": ["journal_article", "review", "conference_paper"],
+    "allow_unknown_types": false,
+    "minimum_score": 40,
+    "capes_production_cache": "data/catalogs/capes/productions.jsonl",
+    "catalogs": {
+      "scielo_journals": "docs/journals_areas_2026-09-29_19-15-23.csv",
+      "doaj_journals": "docs/doaj_journalcsv_20260830_2320_utf8.csv",
+      "capes_qualis": "config/capes-qualis.csv",
+      "core_conferences": "config/core-conferences.csv"
+    }
+  }
+}
+```
+
+Per-search overrides are available:
+
+```bash
+paper-ops search "retrieval augmented generation" --quality-mode strict --types journal-article,review,conference-paper
+paper-ops search "retrieval augmented generation" --quality-mode prioritize
+paper-ops search "retrieval augmented generation" --quality-mode off
+paper-ops search "retrieval augmented generation" --min-quality-score 65
+```
+
+CAPES/Sucupira production metadata can be synchronized separately:
+
+```bash
+paper-ops catalog sync capes
+paper-ops catalog sync capes --year 2024 --page-size 100 --max-pages 25
+```
+
+The command discovers valid API facets, defaults to the newest available year, requests bibliographic journal articles and proceedings papers, and writes an atomic local snapshot plus a provenance manifest under `data/catalogs/capes/`. `--max-pages` is a safety boundary; the manifest reports `truncated: true` when additional pages may exist. Re-running a year replaces that year's cached rows while preserving other synchronized years.
+
+Searches match this cache by exact normalized article title plus year. A match adds `capes_production_registered`; it never sets `capes_validated`, because production registration and Qualis venue classification are different claims.
+
+`strict` removes disallowed publication types and records below the minimum score. `prioritize` retains all records and only changes their ordering. The score records its reasons and catalog matches in `academic_quality`, so the ranking remains inspectable.
+
+Catalog matching prefers ISSN/eISSN and falls back to an exact normalized venue title or conference acronym. Import templates are available at `config/capes-qualis.example.csv` and `config/core-conferences.example.csv`.
+
+The bundled `docs/journals_areas_2026-09-29_19-15-23.csv` is treated as a SciELO title/activity catalog. The DOAJ export in `docs/doaj_journalcsv_20260830_2320_utf8.csv` supplies international journal title, ISSN/eISSN, and peer-review evidence. Neither catalog is labeled as CAPES or Qualis data. Likewise, `docs/br-capes-acessos-portal-periodicos-2025-2026-06-01.xlsx` contains institutional Portal usage metrics and is not used to score individual venues.
+
 API keys are resolved in this order:
 
 1. process environment variables such as `SCOPUS_API_KEY`, `IEEE_API_KEY`, and `WEB_OF_SCIENCE_API_KEY`
@@ -272,13 +328,22 @@ Every saved result uses the normalized `PaperRecord` shape:
   "authors": ["Ada Lovelace"],
   "year": 2024,
   "venue": "Journal of Evidence Automation",
+  "publication_type": "journal_article",
   "doi": "10.1000/alpha",
   "url": "https://example.org/paper",
   "abstract": "Paper abstract",
   "pdf_available": true,
   "pdf_url": "https://example.org/paper.pdf",
   "matched_query": "\"systematic review\" AND rag",
-  "retrieved_at": "2026-04-17T15:00:00.000Z"
+  "retrieved_at": "2026-04-17T15:00:00.000Z",
+  "academic_quality": {
+    "score": 84,
+    "tier": "strong",
+    "capes_validated": false,
+    "scielo_indexed": true,
+    "doaj_indexed": false,
+    "catalog_matches": []
+  }
 }
 ```
 

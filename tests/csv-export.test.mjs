@@ -31,6 +31,19 @@ test('exportQueryResultsToCsv combines only matching query exports and deduplica
         authors: ['Alice'],
         year: 2025,
         venue: 'Journal A',
+        publication_type: 'journal_article',
+        peer_reviewed: true,
+        academic_quality: {
+          score: 88,
+          tier: 'high',
+          capes_validated: true,
+          qualis: 'A1',
+          scielo_indexed: false,
+          doaj_indexed: true,
+          international_rank: '',
+          reasons: ['CAPES/Qualis A1', 'matched DOAJ peer-reviewed journal'],
+          catalog_matches: [],
+        },
         doi: '10.1000/alpha',
         url: 'https://example.org/a',
         pdf_available: true,
@@ -110,6 +123,10 @@ test('exportQueryResultsToCsv combines only matching query exports and deduplica
   const csv = readFileSync(result.csvPath, 'utf8');
   assert.match(csv, /Testing Agents in Web Systems/);
   assert.match(csv, /LLM-Based Test Automation/);
+  assert.match(csv, /"QualityScore"/);
+  assert.match(csv, /"CAPESValidated"/);
+  assert.match(csv, /"88"/);
+  assert.match(csv, /"A1"/);
   assert.doesNotMatch(csv, /Should Not Appear/);
 });
 

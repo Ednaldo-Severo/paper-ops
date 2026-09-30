@@ -32,6 +32,8 @@ function mapIeeeArticle(article, query, retrievedAt) {
     doi: article.doi ?? '',
     url: article.html_url ?? '',
     abstract: article.abstract ?? '',
+    publication_type: article.content_type ?? article.publication_type ?? '',
+    issn: article.issn ?? '',
     pdf_available: pdf.pdf_available,
     pdf_url: pdf.pdf_url,
     matched_query: query,

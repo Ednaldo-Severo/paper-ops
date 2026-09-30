@@ -39,6 +39,7 @@ paper-ops evidence "\"systematic review\" AND rag" --question "What methods are 
 paper-ops references "\"systematic review\" AND rag" --format all
 paper-ops matrix "\"systematic review\" AND rag"
 paper-ops draft "\"systematic review\" AND rag" --section related-work --question "What methods are used?"
+paper-ops catalog sync capes
 paper-ops csv "\"systematic review\" AND rag"
 paper-ops tracker
 paper-ops pipeline
@@ -64,6 +65,7 @@ node paper-ops-gemini.mjs search "\"systematic review\" AND rag" --fixtures
 | `paper-ops digest <query>` | `digest` | Generate a cross-article digest from structured summaries |
 | `paper-ops ocr <query>` | `ocr` | OCR cached or downloadable PDFs for one saved query |
 | `paper-ops db init` | `db` | Initialize the local SQLite RAG database |
+| `paper-ops catalog sync capes` | `catalog` | Synchronize a bounded CAPES/Sucupira production snapshot for academic-quality enrichment |
 | `paper-ops index <query>` | `index` | Build a local SQLite FTS/BM25 RAG index for a saved query |
 | `paper-ops embed <query>` | `embed` | Generate semantic embeddings for indexed chunks |
 | `paper-ops ask <query> --question <question>` | `ask` | Answer using indexed chunks and verified evidence |
@@ -83,6 +85,7 @@ node paper-ops-gemini.mjs search "\"systematic review\" AND rag" --fixtures
   - `.env` as the primary local source
   - `config/keys.txt` as a legacy fallback
 - Local RAG database: `data/paper-ops.sqlite`
+- CAPES production cache: `data/catalogs/capes/productions.jsonl`
 - OCR artifacts: `output/ocr-pdfs/*.pdf`, `output/ocr-text/*.txt`
 - Semantic retrieval uses `paper-ops embed` plus `--retrieval semantic|hybrid`
 - Live source execution uses Playwright plus Chromium browser automation

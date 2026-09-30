@@ -23,7 +23,13 @@ export function buildGeminiPrompt(argv = []) {
   const sectionFlag = routed.flags.section ? ` --section ${routed.flags.section}` : '';
   const outputDirFlag = routed.flags.outputDir ? ` --output-dir ${JSON.stringify(routed.flags.outputDir)}` : '';
   const useTitleFlag = routed.flags.useTitle ? ' --use-title' : '';
-  const composedFlags = `${questionFlag}${refreshTextFlag}${refreshCorpusFlag}${refreshIndexFlag}${ocrFlag}${ocrLangFlag}${forceFlag}${embedFlag}${refreshEmbeddingsFlag}${retrievalFlag}${embeddingProviderFlag}${embeddingModelFlag}${topKFlag}${formatFlag}${sectionFlag}${outputDirFlag}${useTitleFlag}${fixturesFlag}`;
+  const qualityModeFlag = routed.flags.qualityMode ? ` --quality-mode ${routed.flags.qualityMode}` : '';
+  const typesFlag = routed.flags.types ? ` --types ${routed.flags.types}` : '';
+  const minQualityScoreFlag = Number.isFinite(routed.flags.minQualityScore) ? ` --min-quality-score ${routed.flags.minQualityScore}` : '';
+  const yearFlag = Number.isFinite(routed.flags.year) ? ` --year ${routed.flags.year}` : '';
+  const pageSizeFlag = Number.isFinite(routed.flags.pageSize) ? ` --page-size ${routed.flags.pageSize}` : '';
+  const maxPagesFlag = Number.isFinite(routed.flags.maxPages) ? ` --max-pages ${routed.flags.maxPages}` : '';
+  const composedFlags = `${questionFlag}${refreshTextFlag}${refreshCorpusFlag}${refreshIndexFlag}${ocrFlag}${ocrLangFlag}${forceFlag}${embedFlag}${refreshEmbeddingsFlag}${retrievalFlag}${embeddingProviderFlag}${embeddingModelFlag}${topKFlag}${formatFlag}${sectionFlag}${outputDirFlag}${useTitleFlag}${qualityModeFlag}${typesFlag}${minQualityScoreFlag}${yearFlag}${pageSizeFlag}${maxPagesFlag}${fixturesFlag}`;
 
   if (routed.mode === 'help') {
     return 'paper-ops';
@@ -38,6 +44,12 @@ export function buildGeminiPrompt(argv = []) {
   if (routed.mode === 'workspace-init') {
     return routed.query
       ? `paper-ops workspace init ${JSON.stringify(routed.query)}${fixturesFlag}`
+      : 'paper-ops';
+  }
+
+  if (routed.mode === 'catalog') {
+    return routed.query
+      ? `paper-ops catalog ${routed.query}${composedFlags}`
       : 'paper-ops';
   }
 

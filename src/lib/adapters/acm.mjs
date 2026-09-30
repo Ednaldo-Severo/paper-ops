@@ -30,6 +30,8 @@ function mapAcmItem(item, query, retrievedAt) {
     doi: item.doi ?? '',
     url: item.url ?? '',
     abstract: item.abstract ?? '',
+    publication_type: item.contentType ?? item.publicationType ?? '',
+    issn: item.issn ?? '',
     pdf_available: pdf.pdf_available,
     pdf_url: pdf.pdf_url,
     matched_query: query,

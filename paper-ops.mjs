@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { processBatchQueries } from './src/lib/batch.mjs';
+import { syncCapesCatalog } from './src/lib/catalog-sync.mjs';
 import {
   answerWorkspaceQuestion,
   digestQueryArticles,
@@ -38,6 +39,7 @@ import {
   renderOcrSummary,
   renderPdfFetchSummary,
   renderArticleSummaryWorkflowSummary,
+  renderCatalogSyncSummary,
   renderQuestionAnswerSummary,
   renderRagAnswerSummary,
   renderRagIndexSummary,
@@ -55,7 +57,7 @@ function readIntegerFlag(value, fallback) {
 }
 
 export async function main(argv = process.argv.slice(2), io = {}) {
-  const { stdout = console.log } = io;
+  const { stdout = console.log, fetchImpl = fetch } = io;
   const routed = routeCliInput(argv);
   const projectRoot = resolve(routed.flags.projectRoot || process.cwd());
 
@@ -88,10 +90,40 @@ export async function main(argv = process.argv.slice(2), io = {}) {
       }
     }
 
+    if (routed.flags.qualityMode) {
+      const requestedMode = String(routed.flags.qualityMode).toLowerCase();
+      config.quality.enabled = requestedMode !== 'off';
+      config.quality.mode = requestedMode;
+    }
+    if (routed.flags.types) {
+      config.quality.allowed_publication_types = String(routed.flags.types)
+        .split(',')
+        .map((value) => value.trim().replace(/-/g, '_'))
+        .filter(Boolean);
+    }
+    if (Number.isFinite(routed.flags.minQualityScore)) {
+      config.quality.minimum_score = routed.flags.minQualityScore;
+    }
+
     return config;
   }
 
   switch (routed.mode) {
+    case 'catalog': {
+      if (routed.query.toLowerCase() !== 'sync capes') {
+        stdout(renderHelpMenu());
+        return { mode: 'help' };
+      }
+      const result = await syncCapesCatalog({
+        projectRoot,
+        fetchImpl,
+        year: routed.flags.year,
+        pageSize: readIntegerFlag(routed.flags.pageSize, 100),
+        maxPages: readIntegerFlag(routed.flags.maxPages, 25),
+      });
+      stdout(renderCatalogSyncSummary(result));
+      return result;
+    }
     case 'search': {
       const config = loadConfiguredSources();
       const resolved = resolveQueryInput(routed.query, projectRoot);

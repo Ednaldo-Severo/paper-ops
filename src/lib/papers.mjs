@@ -130,7 +130,7 @@ function mergePdfMetadata(preferred, fallback) {
 function mergePaperRecords(preferred, fallback) {
   const pdf = mergePdfMetadata(preferred, fallback);
 
-  return {
+  const merged = {
     source: mergeScalar(preferred.source, fallback.source),
     source_id: mergeScalar(preferred.source_id, fallback.source_id),
     title: mergeScalar(preferred.title, fallback.title),
@@ -145,12 +145,33 @@ function mergePaperRecords(preferred, fallback) {
     matched_query: mergeScalar(preferred.matched_query, fallback.matched_query),
     retrieved_at: mergeScalar(preferred.retrieved_at, fallback.retrieved_at),
   };
+
+  for (const key of ['publication_type', 'document_type', 'content_type', 'issn', 'eissn']) {
+    const value = mergeScalar(preferred[key], fallback[key]);
+    if (value) {
+      merged[key] = value;
+    }
+  }
+
+  if (preferred.peer_reviewed !== undefined || fallback.peer_reviewed !== undefined) {
+    merged.peer_reviewed = preferred.peer_reviewed ?? fallback.peer_reviewed;
+  }
+
+  const preferredQuality = preferred.academic_quality;
+  const fallbackQuality = fallback.academic_quality;
+  if (preferredQuality || fallbackQuality) {
+    merged.academic_quality = (fallbackQuality?.score ?? -1) > (preferredQuality?.score ?? -1)
+      ? fallbackQuality
+      : preferredQuality;
+  }
+
+  return merged;
 }
 
 export function normalizePaperRecord(input) {
   const pdfUrl = normalizePdfUrl(input.pdf_url);
 
-  return {
+  const normalized = {
     source: normalizeWhitespace(input.source).toLowerCase(),
     source_id: normalizeWhitespace(input.source_id),
     title: normalizeWhitespace(input.title),
@@ -165,6 +186,27 @@ export function normalizePaperRecord(input) {
     matched_query: normalizeWhitespace(input.matched_query),
     retrieved_at: normalizeWhitespace(input.retrieved_at),
   };
+
+  for (const key of ['publication_type', 'document_type', 'content_type', 'issn', 'eissn']) {
+    const value = normalizeWhitespace(input[key]);
+    if (value) {
+      normalized[key] = value;
+    }
+  }
+
+  if (input.peer_reviewed !== undefined && input.peer_reviewed !== null) {
+    normalized.peer_reviewed = input.peer_reviewed === true;
+  }
+
+  if (input.academic_quality && typeof input.academic_quality === 'object') {
+    normalized.academic_quality = {
+      ...input.academic_quality,
+      reasons: Array.isArray(input.academic_quality.reasons) ? [...input.academic_quality.reasons] : [],
+      catalog_matches: Array.isArray(input.academic_quality.catalog_matches) ? [...input.academic_quality.catalog_matches] : [],
+    };
+  }
+
+  return normalized;
 }
 
 export function deduplicatePaperRecords(records) {

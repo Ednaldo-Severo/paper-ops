@@ -18,6 +18,7 @@ Use this repo as a local academic paper discovery workspace.
 - `paper-ops summarize <query>` -> extract PDF text and write structured article summaries
 - `paper-ops digest <query>` -> synthesize structured summaries into a search-level digest
 - `paper-ops db init` -> initialize the local SQLite RAG database
+- `paper-ops catalog sync capes` -> synchronize CAPES/Sucupira production metadata into the local quality cache
 - `paper-ops ocr <query>` -> OCR cached/downloadable PDFs for a saved query
 - `paper-ops index <query>` -> build the local RAG index for one saved query
 - `paper-ops embed <query>` -> generate semantic embeddings for indexed chunks

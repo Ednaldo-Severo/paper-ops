@@ -3,6 +3,7 @@ const KNOWN_MODES = new Set([
   'pipeline',
   'tracker',
   'batch',
+  'catalog',
   'csv',
   'fetch-pdfs',
   'summarize',
@@ -30,7 +31,7 @@ function toCamelCase(value) {
 }
 
 function normalizeFlagValue(key, value) {
-  if (key === 'topK' && typeof value === 'string') {
+  if (['topK', 'minQualityScore', 'year', 'pageSize', 'maxPages'].includes(key) && typeof value === 'string') {
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) ? parsed : value;
   }
@@ -99,5 +100,38 @@ export function routeCliInput(argv = []) {
 }
 
 export function renderHelpMenu() {
-  return `paper-ops -- Academic Paper Search\n\nGemini-first usage:\n  gemini                          -> Open Gemini CLI in this repo, then type paper-ops ...\n  paper-ops-gemini <command>      -> Run a one-shot Gemini prompt through the paper-ops router\n\nAvailable commands:\n  paper-ops search "<query>"      -> Run a multi-source search, show a terminal summary, and save report + JSON\n  paper-ops search <workspace-dir> -> Run a search using brief.md and save artifacts inside that workspace\n  paper-ops fetch-pdfs "<query>"  -> Download available PDFs for one saved search string\n  paper-ops summarize "<query>"   -> Extract text and generate structured summaries for saved search results\n  paper-ops digest "<query>"      -> Build a consolidated digest across summarized articles for one query\n  paper-ops ask "<query>" --question "<question>" -> Answer using the local RAG database\n  paper-ops ask <workspace-dir> --question "<question>" -> Answer using the workspace corpus only\n  paper-ops evidence "<query>" --question "<question>" -> Export retrieved evidence chunks\n  paper-ops references "<query>"  -> Export ABNT/BibTeX/APA references from indexed articles\n  paper-ops matrix "<query>"      -> Export a literature matrix for indexed articles\n  paper-ops draft "<query>" --section "<section>" --question "<focus>" -> Draft a sourced section\n  paper-ops index "<query>"       -> Build or refresh the local SQLite RAG index\n  paper-ops ocr "<query>"         -> OCR cached/downloadable PDFs for one saved query\n  paper-ops embed "<query>"       -> Generate semantic embeddings for indexed chunks\n  paper-ops db init               -> Initialize data/paper-ops.sqlite\n  paper-ops ingest <workspace-dir> -> Build canonical markdown, structured JSON, manifest, and chunks for one workspace\n  paper-ops workspace init <slug> -> Create a new research workspace with a brief template\n  paper-ops csv "<query>"         -> Export a deduplicated CSV using saved results for one search string\n  paper-ops pipeline               -> Process queued searches from data/search-queue.md\n  paper-ops tracker                -> Show saved search history in terminal form\n  paper-ops batch                  -> Process batch/batch-input.tsv\n  paper-ops <query>                -> Treat raw query text as a search request`;
+  return `paper-ops -- Academic Paper Search
+
+Gemini-first usage:
+  gemini                          -> Open Gemini CLI in this repo, then type paper-ops ...
+  paper-ops-gemini <command>      -> Run a one-shot Gemini prompt through the paper-ops router
+
+Available commands:
+  paper-ops search "<query>"      -> Run a multi-source search, rank academic relevance, and save report + JSON
+  paper-ops search "<query>" --quality-mode strict --types journal-article,review,conference-paper
+                                  -> Limit results to selected scholarly publication types
+  paper-ops search "<query>" --quality-mode prioritize
+                                  -> Keep all results but rank stronger academic venues first
+  paper-ops catalog sync capes   -> Cache CAPES/Sucupira articles and proceedings metadata
+  paper-ops search <workspace-dir> -> Run a search using brief.md and save artifacts inside that workspace
+  paper-ops fetch-pdfs "<query>"  -> Download available PDFs for one saved search string
+  paper-ops summarize "<query>"   -> Extract text and generate structured summaries for saved search results
+  paper-ops digest "<query>"      -> Build a consolidated digest across summarized articles for one query
+  paper-ops ask "<query>" --question "<question>" -> Answer using the local RAG database
+  paper-ops ask <workspace-dir> --question "<question>" -> Answer using the workspace corpus only
+  paper-ops evidence "<query>" --question "<question>" -> Export retrieved evidence chunks
+  paper-ops references "<query>"  -> Export ABNT/BibTeX/APA references from indexed articles
+  paper-ops matrix "<query>"      -> Export a literature matrix for indexed articles
+  paper-ops draft "<query>" --section "<section>" --question "<focus>" -> Draft a sourced section
+  paper-ops index "<query>"       -> Build or refresh the local SQLite RAG index
+  paper-ops ocr "<query>"         -> OCR cached/downloadable PDFs for one saved query
+  paper-ops embed "<query>"       -> Generate semantic embeddings for indexed chunks
+  paper-ops db init               -> Initialize data/paper-ops.sqlite
+  paper-ops ingest <workspace-dir> -> Build canonical markdown, structured JSON, manifest, and chunks for one workspace
+  paper-ops workspace init <slug> -> Create a new research workspace with a brief template
+  paper-ops csv "<query>"         -> Export a deduplicated CSV using saved results for one search string
+  paper-ops pipeline               -> Process queued searches from data/search-queue.md
+  paper-ops tracker                -> Show saved search history in terminal form
+  paper-ops batch                  -> Process batch/batch-input.tsv
+  paper-ops <query>                -> Treat raw query text as a search request`;
 }

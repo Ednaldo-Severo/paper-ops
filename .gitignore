@@ -18,6 +18,7 @@ reports/digests/
 reports/answers/
 data/*.md
 data/*.sqlite*
+data/catalogs/
 batch/batch-state.tsv
 batch/logs/
 batch/tracker-additions/

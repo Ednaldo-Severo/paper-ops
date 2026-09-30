@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { loadAcademicCatalogs } from './academic-quality.mjs';
 import { readProjectEnv } from './env.mjs';
 
 const DEFAULT_SOURCES = ['scopus', 'ieee', 'acm', 'google_scholar', 'scielo', 'web_of_science'];
@@ -41,6 +42,17 @@ export function loadSourcesConfig(rawConfig = {}, options = {}) {
 
   const sources = {};
   const apiKeys = options.apiKeys ?? {};
+  const quality = {
+    enabled: false,
+    mode: 'prioritize',
+    allowed_publication_types: ['journal_article', 'review', 'conference_paper'],
+    allow_unknown_types: false,
+    minimum_score: 40,
+    catalogs: {},
+    capes_production_cache: 'data/catalogs/capes/productions.jsonl',
+    ...(rawConfig.quality ?? {}),
+    ...(options.qualityCatalogs ?? {}),
+  };
 
   for (const sourceName of DEFAULT_SOURCES) {
     const sourceConfig = rawConfig.sources?.[sourceName] ?? {};
@@ -53,14 +65,17 @@ export function loadSourcesConfig(rawConfig = {}, options = {}) {
     };
   }
 
-  return { defaults, sources };
+  return { defaults, sources, quality };
 }
 
 export function readSourcesConfig(projectRoot, env = process.env) {
   const configPath = join(projectRoot, 'config', 'sources.yml');
   const rawText = readFileSync(configPath, 'utf8');
   const resolvedEnv = readProjectEnv(projectRoot, env);
-  return loadSourcesConfig(JSON.parse(rawText), {
+  const config = loadSourcesConfig(JSON.parse(rawText), {
     apiKeys: readLocalApiKeys(projectRoot, resolvedEnv),
   });
+  const qualityCatalogs = loadAcademicCatalogs(projectRoot, config.quality);
+  config.quality = { ...config.quality, ...qualityCatalogs };
+  return config;
 }

@@ -36,15 +36,19 @@ Environment variable precedence is:
 3. `config/keys.txt`
 
 4. Review `config/sources.yml`
+   - Academic quality filtering is enabled by default.
+   - The included SciELO and DOAJ catalogs are loaded from `docs/journals_areas_2026-09-29_19-15-23.csv` and `docs/doaj_journalcsv_20260830_2320_utf8.csv`.
+   - To enable CAPES/Qualis or CORE ranking, copy the corresponding example CSV in `config/`, remove `.example` from its name, and populate it with an official export.
 5. Run `node doctor.mjs`
-6. Run `npm test`
-7. Run a fixture-backed search:
+6. Optionally synchronize CAPES production evidence with `paper-ops catalog sync capes`. Use `--max-pages` to bound the download and inspect `data/catalogs/capes/manifest.json` for truncation.
+7. Run `npm test`
+8. Run a fixture-backed search:
 
 ```bash
 node paper-ops.mjs search "\"systematic review\" AND rag" --fixtures
 ```
 
-8. If you want PDF reading, summaries, digests, or answers, ensure Gemini CLI is available in your shell before running:
+9. If you want PDF reading, summaries, digests, or answers, ensure Gemini CLI is available in your shell before running:
 
 ```bash
 paper-ops summarize "\"systematic review\" AND rag"

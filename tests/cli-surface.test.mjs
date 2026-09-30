@@ -76,6 +76,16 @@ test('buildGeminiPrompt canonicalizes router requests for Gemini CLI one-shot us
 });
 
 test('routeCliInput recognizes local RAG commands and flags', () => {
+  assert.deepEqual(routeCliInput(['catalog', 'sync', 'capes', '--year', '2024', '--page-size', '50', '--max-pages', '10']), {
+    mode: 'catalog',
+    query: 'sync capes',
+    flags: {
+      year: 2024,
+      pageSize: 50,
+      maxPages: 10,
+    },
+  });
+
   assert.deepEqual(routeCliInput(['db', 'init']), {
     mode: 'db',
     query: 'init',
@@ -148,5 +158,10 @@ test('routeCliInput recognizes local RAG commands and flags', () => {
   assert.equal(
     buildGeminiPrompt(['embed', '"software testing" AND ai', '--embedding-provider', 'fixture', '--embedding-model', 'fixture-32']),
     'paper-ops embed "\\"software testing\\" AND ai" --embedding-provider fixture --embedding-model fixture-32',
+  );
+
+  assert.equal(
+    buildGeminiPrompt(['catalog', 'sync', 'capes', '--year', '2024', '--max-pages', '10']),
+    'paper-ops catalog sync capes --year 2024 --max-pages 10',
   );
 });

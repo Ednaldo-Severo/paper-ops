@@ -65,6 +65,8 @@ export function renderSearchRunSummary(result, options = {}) {
   }));
   const resultRows = result.records.slice(0, maxResults).map((record, index) => ({
     index: String(index + 1),
+    quality: String(record.academic_quality?.score ?? '-'),
+    type: record.publication_type || '-',
     year: record.year ?? '-',
     source: formatSourceName(record.source),
     pdf: formatPdfAvailability(record.pdf_available),
@@ -77,8 +79,15 @@ export function renderSearchRunSummary(result, options = {}) {
     `Query: ${result.query}`,
     `Generated: ${result.now.toISOString()}`,
     `Raw records: ${result.summary.totalRawRecords}`,
+    `Deduplicated records: ${result.summary.deduplicatedRecords ?? result.summary.uniqueRecords}`,
     `Unique records: ${result.summary.uniqueRecords}`,
     `Duplicates removed: ${result.summary.duplicatesRemoved}`,
+    `Quality policy: ${result.summary.quality?.enabled ? result.summary.quality.mode : 'off'}`,
+    `Filtered by type/score: ${(result.summary.quality?.filteredByType ?? 0) + (result.summary.quality?.filteredByScore ?? 0)}`,
+    `CAPES/Qualis matches: ${result.summary.quality?.capesMatches ?? 0}`,
+    `CAPES production matches: ${result.summary.quality?.capesProductionMatches ?? 0}`,
+    `SciELO matches: ${result.summary.quality?.scieloMatches ?? 0}`,
+    `DOAJ matches: ${result.summary.quality?.doajMatches ?? 0}`,
     '',
     'Source coverage',
     renderTable(
@@ -95,6 +104,8 @@ export function renderSearchRunSummary(result, options = {}) {
     renderTable(
       [
         { key: 'index', label: '#', width: 2 },
+        { key: 'quality', label: 'Score', width: 5 },
+        { key: 'type', label: 'Type', width: 16 },
         { key: 'year', label: 'Year', width: 4 },
         { key: 'source', label: 'Source', width: 16 },
         { key: 'pdf', label: 'PDF', width: 7 },
@@ -123,6 +134,35 @@ export function renderSearchRunSummary(result, options = {}) {
       `History: ${result.artifacts.historyIndex}`,
     );
   }
+
+  return sections.join('\n');
+}
+
+export function renderCatalogSyncSummary(result) {
+  const sections = [
+    'paper-ops catalog sync capes complete',
+    '',
+    `Year: ${result.year}`,
+    `Query: ${result.query}`,
+    `Pages fetched: ${result.pages_fetched}`,
+    `Raw records fetched: ${result.raw_records_fetched}`,
+    `Relevant productions: ${result.relevant_records}`,
+    `Snapshot records: ${result.snapshot_records}`,
+    `Truncated by safety limit: ${result.truncated ? 'yes' : 'no'}`,
+  ];
+
+  if (result.facet_warnings?.length > 0) {
+    sections.push('', 'Facet warnings', ...result.facet_warnings.map((warning) => `- ${warning}`));
+  }
+
+  sections.push(
+    '',
+    'Artifacts',
+    `Snapshot: ${result.artifacts.snapshotPath}`,
+    `Manifest: ${result.artifacts.manifestPath}`,
+    '',
+    'Note: a production match does not imply CAPES/Qualis venue classification.',
+  );
 
   return sections.join('\n');
 }

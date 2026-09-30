@@ -875,3 +875,77 @@ The plan was implemented as a V1 extension to the local RAG system.
 7. Added hybrid retrieval using BM25 plus semantic reciprocal rank fusion.
 8. Added `--retrieval bm25|semantic|hybrid`, `--embed`, and `--refresh-embeddings` for `ask` and `evidence`.
 9. Added retrieval quality metrics for precision@k, recall@k, and MRR.
+
+## Autonomous & GUI Agents Literature Search
+
+**Date:** 2026-09-24
+
+Executed a multi-source academic paper search for autonomous agents, GUI/OS agents, computer-use agents, and desktop automation backed by LLMs/VLMs.
+
+- **Query:** `("autonomous agent" OR "GUI agent" OR "OS agent" OR "computer use agent" OR "desktop agent") AND ("desktop automation" OR "GUI automation" OR "task execution" OR "computer control" OR "action space") AND ("large language model" OR "LLM" OR "vision-language model" OR "VLM" OR "multimodal agent")`
+- **Total records retrieved:** 146 raw, 142 unique, 4 duplicates removed.
+- **Source breakdown:**
+  - Google Scholar: 100
+  - Scopus: 25
+  - IEEE Xplore: 11
+  - Web of Science: 10
+  - ACM: 0
+  - SciELO: 0
+- **Artifacts:**
+  - Report: `reports/2026-09-24-autonomous-agent-or-gui-agent-or-os-agent-or-com-2026-09-24T19-21-12-020Z.md`
+  - JSON: `output/2026-09-24-autonomous-agent-or-gui-agent-or-os-agent-or-com-2026-09-24T19-21-12-020Z.json`
+  - CSV: `output/search-results-autonomous-agent-or-gui-agent-or-os-agent-or-computer-use-agent-.csv`
+
+## Academic Venue Quality Filtering and Ranking
+
+**Date:** 2026-09-30
+
+The search pipeline was extended to prefer academically relevant publication venues and limit returned material types.
+
+### Data assessment
+
+1. `docs/br-capes-acessos-portal-periodicos-2025-2026-06-01.xlsx` contains 455 institutional/UF access-metric rows. It does not identify journals or conferences and therefore is not used as venue-quality evidence.
+2. `docs/journals_areas_2026-09-29_19-15-23.csv` contains 432 SciELO-style journal rows with areas, issue/volume recency, and active status. Three placeholder titles are excluded, leaving 429 catalog entries.
+3. The SciELO catalog has no ISSN or Qualis column, so a match is labeled `scielo_indexed`, never `capes_validated`.
+4. CAPES/Qualis and CORE remain separate optional CSV catalogs, with tracked header-only templates documenting their accepted schema.
+5. `docs/doaj_journalcsv_20260830_2320_utf8.csv` contains 23,382 international open-access journal records with title, ISSN/eISSN, and review-process metadata; it is loaded as an independent DOAJ signal.
+
+### Implementation decisions
+
+1. Added `src/lib/academic-quality.mjs` for publication-type inference, catalog parsing, title/ISSN/acronym matching, academic scoring, filtering, and sorting.
+2. Added strict and prioritize modes plus CLI overrides: `--quality-mode`, `--types`, and `--min-quality-score`.
+3. Enabled strict filtering in `config/sources.yml` for journal articles, reviews, and conference papers with a minimum score of 40.
+4. Preserved distinct evidence flags and reasons for CAPES/Qualis, SciELO, and international rankings.
+5. Extended API adapters to retain publication-type and ISSN metadata when sources provide it.
+6. Added quality summaries to terminal output, markdown reports, and JSON records.
+
+### Verification evidence
+
+- `npm test`: 62 passed, 0 failed.
+- `node doctor.mjs`: completed successfully with four optional-runtime warnings (OpenDataLoader, OCRmyPDF, real embeddings, and external AI CLI).
+- Catalog loading verified: 429 SciELO titles and 23,382 DOAJ titles.
+- Cross-catalog fixture verified with `Scientia Agricola`, producing independent SciELO and DOAJ matches.
+- `node verify.mjs` remains red because the existing `data/search-history.md` references historical report/JSON artifacts that are absent from the working tree. No saved history or artifacts were deleted or rewritten as part of this change.
+
+## CAPES/Sucupira Catalog Synchronization
+
+**Date:** 2026-09-30
+
+Implemented `paper-ops catalog sync capes` as a bounded, auditable integration with the public Sucupira production API.
+
+### Decisions
+
+1. Discover valid year, type, and subtype keys from CAPES facets instead of hard-coding internal identifiers.
+2. Default to the newest year returned by the API and allow `--year`, `--page-size`, and `--max-pages` overrides.
+3. Keep only bibliographic journal articles and proceedings papers, with a client-side guard when type facets are temporarily unavailable.
+4. Write the JSONL snapshot and provenance manifest atomically under `data/catalogs/capes/`.
+5. Preserve synchronized records from other years when one year is refreshed.
+6. Match search results by exact normalized title plus year and label the evidence `capes_production_registered`.
+7. Never infer `capes_validated` from production registration; that flag remains reserved for an official Qualis venue match.
+
+### Verification evidence
+
+- `npm test`: 66 passed, 0 failed.
+- `node doctor.mjs`: completed successfully with four optional-runtime warnings (OpenDataLoader, OCRmyPDF, real embeddings, and external AI CLI).
+- `git diff --check`: passed; only the repository's existing Windows line-ending notices were emitted.
+- Catalog tests cover facet discovery, scholarly subtype filtering, unavailable years, CLI routing, and incremental refresh without dropping previously synchronized years.
